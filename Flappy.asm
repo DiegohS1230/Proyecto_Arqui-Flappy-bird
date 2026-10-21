@@ -46,6 +46,7 @@ gapH           dw 90
 
 score          dw 0
 high_score     dw 0
+deaths         dw 0
 passed         db 0
 rand_seed      dw 1234
 
@@ -88,7 +89,7 @@ ok_gap:
 ; ======================================================
 start:
     call init_gfx
-    call draw_sky_once
+    call show_welcome
 main_loop:
     call frame_delay
 
@@ -300,6 +301,7 @@ safe:
     jmp main_loop
 
 crash:
+   inc deaths
    call play_crash_sound
 
 call show_game_over
@@ -460,6 +462,219 @@ crash_delay:
     pop bx
     pop ax
     ret
+    
+; ======================================================
+; PANTALLA DE BIENVENIDA
+; ======================================================
+show_welcome:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+
+
+    call draw_sky_once
+    call draw_pipes_welcome
+    call draw_bird_welcome
+
+    
+    mov bx, 88
+    mov cx, 50
+    call draw_text_flappy
+
+    
+    mov bx, 110
+    mov cx, 130
+    call draw_text_enter
+
+welcome_wait:
+    mov ah, 00h
+    int 16h
+
+    cmp al, 0Dh
+    je welcome_done
+
+    cmp al, 27
+    jne welcome_wait
+
+    jmp exit_game
+
+welcome_done:
+    call draw_sky_once
+
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+   
+; ======================================================
+; TUBERIAS PARA LA PANTALLA DE BIENVENIDA
+; ======================================================
+draw_pipes_welcome:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+
+    ; Tuberia izquierda superior
+    mov bx, 12
+    mov cx, 35
+    mov si, 22
+    mov di, 43
+    mov al, 2
+    call rect
+
+    ; Tapa inferior de la tuberia superior
+    mov bx, 8
+    mov cx, 76
+    mov si, 30
+    mov di, 8
+    mov al, 10
+    call rect
+
+    ; Tuberia izquierda inferior
+    mov bx, 12
+    mov cx, 145
+    mov si, 22
+    mov di, 35
+    mov al, 2
+    call rect
+
+    ; Tapa superior de la tuberia inferior
+    mov bx, 8
+    mov cx, 141
+    mov si, 30
+    mov di, 8
+    mov al, 10
+    call rect
+
+    ; Tuberia derecha superior
+    mov bx, 286
+    mov cx, 25
+    mov si, 22
+    mov di, 35
+    mov al, 2
+    call rect
+
+    ; Tapa inferior derecha
+    mov bx, 282
+    mov cx, 56
+    mov si, 30
+    mov di, 8
+    mov al, 10
+    call rect
+
+    ; Tuberia derecha inferior
+    mov bx, 286
+    mov cx, 112
+    mov si, 22
+    mov di, 68
+    mov al, 2
+    call rect
+
+    ; Tapa superior derecha
+    mov bx, 282
+    mov cx, 108
+    mov si, 30
+    mov di, 8
+    mov al, 10
+    call rect
+
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+    
+; ======================================================
+; PAJARO DECORATIVO
+; ======================================================
+draw_bird_welcome:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+
+    ; Cuerpo 
+    mov bx, 153
+    mov cx, 95
+    mov si, BIRD_W
+    mov di, BIRD_H
+    mov al, BIRD_COLOR
+    call rect
+
+    ; Ala naranja
+    mov bx, 157
+    mov cx, 103
+    mov si, 9
+    mov di, 4
+    mov al, 6
+    call rect
+
+    ; Ojo blanco
+    mov bx, 166
+    mov cx, 98
+    mov si, 5
+    mov di, 5
+    mov al, 15
+    call rect
+
+    ; Pupila negra
+    mov bx, 169
+    mov cx, 100
+    mov si, 2
+    mov di, 2
+    mov al, 0
+    call rect
+
+    ; Pico naranja
+    mov bx, 167
+    mov cx, 104
+    mov si, 3
+    mov di, 2
+    mov al, 0Ch
+    call rect
+
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+; ------------------------------------------------------
+; Texto "FLAPPY BIRD"   BX=x, CX=y
+; ------------------------------------------------------
+draw_text_flappy:
+    push bx
+    push cx
+    call draw_letter_f
+    add bx, 14
+    call draw_letter_l
+    add bx, 14
+    call draw_letter_a
+    add bx, 14
+    call draw_letter_p
+    add bx, 14
+    call draw_letter_p
+    add bx, 14
+    call draw_letter_y
+    add bx, 22                  ; espacio entre palabras
+    call draw_letter_b
+    add bx, 14
+    call draw_letter_i
+    add bx, 14
+    call draw_letter_r
+    add bx, 14
+    call draw_letter_d
+    pop cx
+    pop bx
+    ret
 
 ; ======================================================
 ; DRAW SCORE HUD (FIXED)
@@ -480,10 +695,24 @@ draw_score_hud:
     mov al, SKY_COLOR
     call rect
     
+    ; Erase old deaths area with larger rectangle
+    mov bx, 280
+    mov cx, 5
+    mov si, 35
+    mov di, 12
+    mov al, SKY_COLOR
+    call rect
+    
     ; Draw score digits
     mov bx, 8
     mov cx, 6
     mov ax, score
+    call draw_number_simple
+    
+    ; Draw deaths
+    mov bx, 290
+    mov cx, 6
+    mov ax, deaths
     call draw_number_simple
     
     pop di
@@ -551,7 +780,7 @@ skip_hs:
     mov bx, 40
     mov cx, 60
     mov si, 240
-    mov di, 80
+    mov di, 100
     mov al, 0
     call rect
 
@@ -564,7 +793,7 @@ skip_hs:
     call rect
     
     mov bx, 42
-    mov cx, 136
+    mov cx, 156
     mov si, 236
     mov di, 2
     mov al, TEXT_COLOR
@@ -573,14 +802,14 @@ skip_hs:
     mov bx, 42
     mov cx, 62
     mov si, 2
-    mov di, 76
+    mov di, 96
     mov al, TEXT_COLOR
     call rect
     
     mov bx, 276
     mov cx, 62
     mov si, 2
-    mov di, 76
+    mov di, 96
     mov al, TEXT_COLOR
     call rect
 
@@ -608,10 +837,19 @@ skip_hs:
     mov cx, 110
     mov ax, high_score
     call draw_number_simple
+    
+    ; Draw "DEATHS: XX"
+    mov bx, 95
+    mov cx, 125
+    call draw_text_deaths
+    mov bx, 180
+    mov cx, 125
+    mov ax, deaths
+    call draw_number_simple
 
     ; Draw "PRESS ENTER "
     mov bx, 80
-    mov cx, 125
+    mov cx, 140
     call  draw_text_enter
 
 ; Wait for Enter
@@ -948,6 +1186,22 @@ draw_text_best:
     pop bx
     ret
 
+draw_text_deaths:
+    push bx
+    call draw_letter_d
+    add bx, 13
+    call draw_letter_e
+    add bx, 13
+    call draw_letter_a
+    add bx, 13
+    call draw_letter_t
+    add bx, 13
+    call draw_letter_h
+    add bx, 13
+    call draw_letter_s
+    pop bx
+    ret
+    
 draw_text_enter:
     push bx
     call draw_letter_p
@@ -1118,6 +1372,103 @@ draw_letter_g:
     add cx, 3
     sub bx, 4
     mov si, 6
+    mov di, 2
+    call rect
+    pop di
+    pop si
+    pop cx
+    pop bx
+    ret
+    
+draw_letter_f:
+    push bx
+    push cx
+    push si
+    push di
+    ; Vertical izquierda
+    mov si, 2
+    mov di, 12
+    mov al, TEXT_COLOR
+    call rect
+    ; Horizontal superior
+    mov si, 10
+    mov di, 2
+    call rect
+    ; Horizontal media
+    add cx, 5
+    mov si, 8
+    call rect
+    pop di
+    pop si
+    pop cx
+    pop bx
+    ret
+    
+draw_letter_h:
+    push bx
+    push cx
+    push si
+    push di
+    ; Left vertical
+    mov si, 2
+    mov di, 12
+    mov al, TEXT_COLOR
+    call rect
+    ; Right vertical
+    add bx, 8
+    call rect
+    sub bx, 8
+    ; Middle horizontal
+    add cx, 5
+    mov si, 10
+    mov di, 2
+    call rect
+    pop di
+    pop si
+    pop cx
+    pop bx
+    ret
+    
+draw_letter_i:
+    push bx
+    push cx
+    push si
+    push di
+    ; Barra superior
+    mov si, 8
+    mov di, 2
+    mov al, TEXT_COLOR
+    call rect
+    ; Vertical central
+    add bx, 3
+    mov si, 2
+    mov di, 12
+    call rect
+    sub bx, 3
+    ; Barra inferior
+    add cx, 10
+    mov si, 8
+    mov di, 2
+    call rect
+    pop di
+    pop si
+    pop cx
+    pop bx
+    ret
+    
+draw_letter_l:
+    push bx
+    push cx
+    push si
+    push di
+    ; Vertical izquierda
+    mov si, 2
+    mov di, 12
+    mov al, TEXT_COLOR
+    call rect
+    ; Horizontal inferior
+    add cx, 10
+    mov si, 10
     mov di, 2
     call rect
     pop di
@@ -1387,14 +1738,44 @@ draw_letter_v:
     mov si,2
     call rect
    ;bottom bar
- 
-
 
    pop di
     pop si
     pop cx
     pop bx
     ret
+    
+draw_letter_y:
+    push bx
+    push cx
+    push si
+    push di
+    ; Brazo izquierdo
+    mov si, 2
+    mov di, 6
+    mov al, TEXT_COLOR
+    call rect
+    ; Brazo derecho
+    add bx, 8
+    call rect
+    sub bx, 8
+    ; Union horizontal
+    add cx, 5
+    mov si, 10
+    mov di, 2
+    call rect
+    ; Tallo
+    add bx, 4
+    add cx, 2
+    mov si, 2
+    mov di, 5
+    call rect
+    pop di
+    pop si
+    pop cx
+    pop bx
+    ret
+
 
 ; ======================================================
 ; CORE ROUTINES
