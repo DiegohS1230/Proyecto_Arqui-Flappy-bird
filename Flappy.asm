@@ -8,9 +8,11 @@ jmp start
 ; ======================================================
 
 SKY_COLOR      equ 3
-PIPE_COLOR     equ 2
+PIPE_COLOR     equ 6
 BIRD_COLOR     equ 14
 TEXT_COLOR     equ 15
+BARK_COLOR     equ 4
+LEAF_COLOR     equ 2
 
 SCREEN_W       equ 320
 SCREEN_H       equ 200
@@ -240,26 +242,60 @@ noScore:
     mov al, BIRD_COLOR
     call rect
 
+    ; ARBOL SUPERIOR
     mov bx, pipeX
     mov cx, 0
     mov si, PIPE_W
     mov di, gapY
-    cmp di, 1
+    cmp di, 8
     jl skip_top
     mov al, PIPE_COLOR
     call rect
+
+    ; Veta del tronco superior
+    mov bx, pipeX
+    add bx, 10
+    mov si, 4
+    mov al, BARK_COLOR
+    call rect
+
+    ; Hojas en la parte inferior
+    mov bx, pipeX
+    mov cx, gapY
+    sub cx, 8
+    mov si, PIPE_W
+    mov di, 8
+    mov al, LEAF_COLOR
+    call rect
 skip_top:
 
+    ; ARBOL INFERIOR
     mov bx, pipeX
     mov cx, gapY
     add cx, gapH
     mov si, PIPE_W
     mov ax, SCREEN_H
     sub ax, cx
-    cmp ax, 1
+    cmp ax, 8
     jl skip_bottom
     mov di, ax
     mov al, PIPE_COLOR
+    call rect
+
+    ; Veta del tronco inferior
+    mov bx, pipeX
+    add bx, 10
+    mov si, 4
+    mov al, BARK_COLOR
+    call rect
+
+    ; Hojas en la parte superior
+    mov bx, pipeX
+    mov cx, gapY
+    add cx, gapH
+    mov si, PIPE_W
+    mov di, 8
+    mov al, LEAF_COLOR
     call rect
 skip_bottom:
 
@@ -525,7 +561,7 @@ draw_pipes_welcome:
     mov cx, 35
     mov si, 22
     mov di, 43
-    mov al, 2
+    mov al, PIPE_COLOR
     call rect
 
     ; Tapa inferior de la tuberia superior
@@ -533,7 +569,7 @@ draw_pipes_welcome:
     mov cx, 76
     mov si, 30
     mov di, 8
-    mov al, 10
+    mov al, LEAF_COLOR
     call rect
 
     ; Tuberia izquierda inferior
@@ -541,7 +577,7 @@ draw_pipes_welcome:
     mov cx, 145
     mov si, 22
     mov di, 35
-    mov al, 2
+    mov al, PIPE_COLOR
     call rect
 
     ; Tapa superior de la tuberia inferior
@@ -549,7 +585,7 @@ draw_pipes_welcome:
     mov cx, 141
     mov si, 30
     mov di, 8
-    mov al, 10
+    mov al, LEAF_COLOR
     call rect
 
     ; Tuberia derecha superior
@@ -557,7 +593,7 @@ draw_pipes_welcome:
     mov cx, 25
     mov si, 22
     mov di, 35
-    mov al, 2
+    mov al, PIPE_COLOR
     call rect
 
     ; Tapa inferior derecha
@@ -565,7 +601,7 @@ draw_pipes_welcome:
     mov cx, 56
     mov si, 30
     mov di, 8
-    mov al, 10
+    mov al, LEAF_COLOR
     call rect
 
     ; Tuberia derecha inferior
@@ -573,7 +609,7 @@ draw_pipes_welcome:
     mov cx, 112
     mov si, 22
     mov di, 68
-    mov al, 2
+    mov al, PIPE_COLOR
     call rect
 
     ; Tapa superior derecha
@@ -581,7 +617,7 @@ draw_pipes_welcome:
     mov cx, 108
     mov si, 30
     mov di, 8
-    mov al, 10
+    mov al, LEAF_COLOR
     call rect
 
     pop di
