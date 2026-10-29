@@ -7,13 +7,6 @@ jmp start
 ; CONSTANTS
 ; ======================================================
 
-SKY_COLOR      equ 3
-PIPE_COLOR     equ 6
-BIRD_COLOR     equ 14
-TEXT_COLOR     equ 15
-BARK_COLOR     equ 4
-LEAF_COLOR     equ 2
-
 SCREEN_W       equ 320
 SCREEN_H       equ 200
 
@@ -32,6 +25,14 @@ MAX_FALL       equ 10
 ; ======================================================
 ; VARIABLES
 ; ======================================================
+
+; Variables de colores para poder cambiarlos en vivo
+sky_col        db 3
+pipe_col       db 6
+bird_col       db 14
+text_col       db 15
+bark_col       db 4
+leaf_col       db 2
 
 pipe_speed     dw PIPE_SPEED
 difficulty_mul dw 1
@@ -57,9 +58,6 @@ rand_seed      dw 1234
 ; ======================================================
 
 update_difficulty:
-
-; difficulty =1+score/5
-
     mov ax, score
     mov bx,  5
     xor dx, dx
@@ -70,7 +68,6 @@ update_difficulty:
     mov ax, 5           ; Cap at 5?
 no_cap:
     mov difficulty_mul, ax
-    ; pipe_speed =PIPE_SPEED*difficulty_mul
     
     mov bx, PIPE_SPEED
     mul bx
@@ -90,8 +87,11 @@ ok_gap:
 ; START
 ; ======================================================
 start:
+    push cs      
+    pop ds       
     call init_gfx
     call show_welcome
+    
 main_loop:
     call frame_delay
 
@@ -183,18 +183,18 @@ noFloor:
 
     ; Random gap Y position (20-110)
     call get_random
-    and ax, 127      ; AX = 0-127    comparing random number with 127 
+    and ax, 127      
     cmp ax, 90
     jle gap_y_ok
     sub ax, 90
 gap_y_ok:
-    add ax, 20       ; AX = 20-110
+    add ax, 20       
     mov gapY, ax
 
     ; Random gap height (70-100)
     call get_random
-    and ax, 31       ; AX = 0-31
-    add ax, GAP_H_MIN ; AX = 70-101
+    and ax, 31       
+    add ax, GAP_H_MIN 
     cmp ax, GAP_H_MAX
     jle gap_h_ok
     mov ax, GAP_H_MAX
@@ -214,8 +214,6 @@ mov passed, 1
 inc score
 call play_score_sound
 
-;call play_flap_sound
-
 call update_difficulty
 noScore:
 
@@ -224,14 +222,14 @@ noScore:
     mov cx, oldBirdY
     mov si, BIRD_W
     mov di, BIRD_H
-    mov al, SKY_COLOR
+    mov al, sky_col
     call rect
 
     mov bx, oldPipeX
     mov cx, 0
     mov si, PIPE_W
     mov di, SCREEN_H
-    mov al, SKY_COLOR
+    mov al, sky_col
     call rect
 
     ; DRAW NEW POSITIONS
@@ -239,7 +237,7 @@ noScore:
     mov cx, birdY
     mov si, BIRD_W
     mov di, BIRD_H
-    mov al, BIRD_COLOR
+    mov al, bird_col
     call rect
 
     ; ARBOL SUPERIOR
@@ -249,14 +247,14 @@ noScore:
     mov di, gapY
     cmp di, 8
     jl skip_top
-    mov al, PIPE_COLOR
+    mov al, pipe_col
     call rect
 
     ; Veta del tronco superior
     mov bx, pipeX
     add bx, 10
     mov si, 4
-    mov al, BARK_COLOR
+    mov al, bark_col
     call rect
 
     ; Hojas en la parte inferior
@@ -265,7 +263,7 @@ noScore:
     sub cx, 8
     mov si, PIPE_W
     mov di, 8
-    mov al, LEAF_COLOR
+    mov al, leaf_col
     call rect
 skip_top:
 
@@ -279,14 +277,14 @@ skip_top:
     cmp ax, 8
     jl skip_bottom
     mov di, ax
-    mov al, PIPE_COLOR
+    mov al, pipe_col
     call rect
 
     ; Veta del tronco inferior
     mov bx, pipeX
     add bx, 10
     mov si, 4
-    mov al, BARK_COLOR
+    mov al, bark_col
     call rect
 
     ; Hojas en la parte superior
@@ -295,7 +293,7 @@ skip_top:
     add cx, gapH
     mov si, PIPE_W
     mov di, 8
-    mov al, LEAF_COLOR
+    mov al, leaf_col
     call rect
 skip_bottom:
 
@@ -367,9 +365,7 @@ pause_wait:
     cmp al, 27
     je resume_game
     jmp pause_wait
-; ======================================================
-; PLAY QUICK SOUND - AX = precomputed divisor
-; ======================================================
+
 ; ======================================================
 ; PLAY FLAP SOUND (Mario-style plop)
 ; ======================================================
@@ -379,12 +375,10 @@ play_flap_sound:
     push cx
     push dx
 
-    ; High starting tone
-    mov bx, 800       ; lower divisor = higher pitch
-    mov cx, 5         ; 5 steps of frequency sweep
+    mov bx, 800       
+    mov cx, 5         
 
 flap_step:
-    ; Set timer 2 (PC speaker)
     mov al, 0B6h
     out 43h, al
     mov al, bl
@@ -392,23 +386,19 @@ flap_step:
     mov al, bh
     out 42h, al
     
-    ; Enable speaker
     in al, 61h
     or al, 3
     out 61h, al
 
-    ; Small delay for audible tone
-    mov dx, 200       ; slightly longer delay
+    mov dx, 200       
 delay_loop:
     dec dx
     jnz delay_loop
 
-    ; Turn off speaker
     in al, 61h
     and al, 0FCh
     out 61h, al
 
-    ; Next step: slightly lower pitch
     add bx, 60
     loop flap_step
 
@@ -417,17 +407,17 @@ delay_loop:
     pop bx
     pop ax
     ret
-   play_score_sound:
+    
+play_score_sound:
     push ax
     push bx
     push cx
     push dx
 
-    mov bx, 1200      ; start frequency divisor (lower = higher pitch)
-    mov cx, 4         ; 4 gentle notes
+    mov bx, 1200      
+    mov cx, 4         
 
 score_step:
-    ; Set timer 2 for speaker
     mov al, 0B6h
     out 43h, al
     mov al, bl
@@ -435,24 +425,20 @@ score_step:
     mov al, bh
     out 42h, al
 
-    ; Turn on speaker
     in al, 61h
     or al, 3
     out 61h, al
 
-    ; Short gentle delay
     mov dx, 250
 score_delay:
     dec dx
     jnz score_delay
 
-    ; Turn off speaker
     in al, 61h
     and al, 0FCh
     out 61h, al
 
-    ; Step to next note (slightly higher)
-    sub bx, 40        ; smaller pitch increment ? softer rise
+    sub bx, 40        
     loop score_step
 
     pop dx
@@ -460,14 +446,15 @@ score_delay:
     pop bx
     pop ax
     ret
+    
 play_crash_sound:
     push ax
     push bx
     push cx
     push dx
 
-    mov bx, 300       ; start low-pitch
-    mov cx, 6         ; 6 steps
+    mov bx, 300       
+    mov cx, 6         
 
 crash_step:
     mov al, 0B6h
@@ -490,7 +477,7 @@ crash_delay:
     and al, 0FCh
     out 61h, al
 
-    add bx, 50        ; lower pitch gradually
+    add bx, 50        
     loop crash_step
 
     pop dx
@@ -509,36 +496,59 @@ show_welcome:
     push si
     push di
 
-
+draw_welcome_screen:
     call draw_sky_once
     call draw_pipes_welcome
     call draw_bird_welcome
-
     
     mov bx, 88
     mov cx, 50
     call draw_text_flappy
-
     
-    mov bx, 110
+    ; Mensaje "PRESS S"
+    mov bx, 125
     mov cx, 130
-    call draw_text_enter
+    call draw_text_start
 
 welcome_wait:
     mov ah, 00h
     int 16h
 
-    cmp al, 0Dh
+    cmp al, ' '      ; ESPACIO = Colores Alternativos
+    je set_alt_colors
+
+    cmp al, 0Dh      ; ENTER = Colores Originales
+    je set_orig_colors
+
+    cmp al, 's'      ; 'S' minúscula para iniciar
+    je welcome_done
+    cmp al, 'S'      ; 'S' mayúscula para iniciar
     je welcome_done
 
-    cmp al, 27
-    jne welcome_wait
+cmp al, 27       ; ESC = Salir
+    jne welcome_wait 
+    jmp exit_game    
 
-    jmp exit_game
+set_alt_colors:
+    mov sky_col, 1   ; Azul oscuro
+    mov pipe_col, 8  ; Gris
+    mov bark_col, 8  ; Gris
+    mov leaf_col, 10 ; Verde neón
+    mov bird_col, 12 ; Rojo
+    mov text_col, 11 ; Cian claro (Texto Neón)
+    jmp draw_welcome_screen
+    
+set_orig_colors:
+    mov sky_col, 3   ; Cian original
+    mov pipe_col, 6  ; Café original
+    mov bark_col, 4  ; Rojo oscuro original
+    mov leaf_col, 2  ; Verde original
+    mov bird_col, 14 ; Amarillo original
+    mov text_col, 15 ; Blanco original
+    jmp draw_welcome_screen
 
 welcome_done:
     call draw_sky_once
-
     pop di
     pop si
     pop cx
@@ -561,7 +571,7 @@ draw_pipes_welcome:
     mov cx, 35
     mov si, 22
     mov di, 43
-    mov al, PIPE_COLOR
+    mov al, pipe_col
     call rect
 
     ; Tapa inferior de la tuberia superior
@@ -569,7 +579,7 @@ draw_pipes_welcome:
     mov cx, 76
     mov si, 30
     mov di, 8
-    mov al, LEAF_COLOR
+    mov al, leaf_col
     call rect
 
     ; Tuberia izquierda inferior
@@ -577,7 +587,7 @@ draw_pipes_welcome:
     mov cx, 145
     mov si, 22
     mov di, 35
-    mov al, PIPE_COLOR
+    mov al, pipe_col
     call rect
 
     ; Tapa superior de la tuberia inferior
@@ -585,7 +595,7 @@ draw_pipes_welcome:
     mov cx, 141
     mov si, 30
     mov di, 8
-    mov al, LEAF_COLOR
+    mov al, leaf_col
     call rect
 
     ; Tuberia derecha superior
@@ -593,7 +603,7 @@ draw_pipes_welcome:
     mov cx, 25
     mov si, 22
     mov di, 35
-    mov al, PIPE_COLOR
+    mov al, pipe_col
     call rect
 
     ; Tapa inferior derecha
@@ -601,7 +611,7 @@ draw_pipes_welcome:
     mov cx, 56
     mov si, 30
     mov di, 8
-    mov al, LEAF_COLOR
+    mov al, leaf_col
     call rect
 
     ; Tuberia derecha inferior
@@ -609,7 +619,7 @@ draw_pipes_welcome:
     mov cx, 112
     mov si, 22
     mov di, 68
-    mov al, PIPE_COLOR
+    mov al, pipe_col
     call rect
 
     ; Tapa superior derecha
@@ -617,7 +627,7 @@ draw_pipes_welcome:
     mov cx, 108
     mov si, 30
     mov di, 8
-    mov al, LEAF_COLOR
+    mov al, leaf_col
     call rect
 
     pop di
@@ -642,7 +652,7 @@ draw_bird_welcome:
     mov cx, 95
     mov si, BIRD_W
     mov di, BIRD_H
-    mov al, BIRD_COLOR
+    mov al, bird_col
     call rect
 
     ; Ala naranja
@@ -683,6 +693,7 @@ draw_bird_welcome:
     pop bx
     pop ax
     ret
+
 ; ------------------------------------------------------
 ; Texto "FLAPPY BIRD"   BX=x, CX=y
 ; ------------------------------------------------------
@@ -700,7 +711,7 @@ draw_text_flappy:
     call draw_letter_p
     add bx, 14
     call draw_letter_y
-    add bx, 22                  ; espacio entre palabras
+    add bx, 22                  
     call draw_letter_b
     add bx, 14
     call draw_letter_i
@@ -723,20 +734,20 @@ draw_score_hud:
     push si
     push di
     
-    ; Erase old score area with larger rectangle
+    ; Erase old score area 
     mov bx, 5
     mov cx, 5
     mov si, 70
     mov di, 12
-    mov al, SKY_COLOR
+    mov al, sky_col
     call rect
     
-    ; Erase old deaths area with larger rectangle
+    ; Erase old deaths area 
     mov bx, 280
     mov cx, 5
     mov si, 35
     mov di, 12
-    mov al, SKY_COLOR
+    mov al, sky_col
     call rect
     
     ; Draw score digits
@@ -758,7 +769,8 @@ draw_score_hud:
     pop bx
     pop ax
     ret
-    draw_pause_overlay:
+
+draw_pause_overlay:
     ; Dark transparent rectangle
     mov bx, 60
     mov cx, 70
@@ -772,28 +784,28 @@ draw_score_hud:
     mov cx, 70
     mov si, 200
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
 
     mov bx, 60
     mov cx, 130
     mov si, 200
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
 
     mov bx, 60
     mov cx, 70
     mov si, 2
     mov di, 60
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
 
     mov bx, 258
     mov cx, 70
     mov si, 2
     mov di, 60
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
 
     ; Draw text "PAUSED"
@@ -801,6 +813,7 @@ draw_score_hud:
     mov cx, 95
     call draw_text_paused
     ret
+
 ; ======================================================
 ; SHOW GAME OVER SCREEN
 ; ======================================================
@@ -825,28 +838,28 @@ skip_hs:
     mov cx, 62
     mov si, 236
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     
     mov bx, 42
     mov cx, 156
     mov si, 236
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     
     mov bx, 42
     mov cx, 62
     mov si, 2
     mov di, 96
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     
     mov bx, 276
     mov cx, 62
     mov si, 2
     mov di, 96
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
 
     ; Draw "GAME OVER"
@@ -886,7 +899,7 @@ skip_hs:
     ; Draw "PRESS ENTER "
     mov bx, 80
     mov cx, 140
-    call  draw_text_enter
+    call draw_text_enter
 
 ; Wait for Enter
 wait_enter:
@@ -909,7 +922,7 @@ wait_enter:
     mov score, 0
     mov passed, 0
     mov difficulty_mul, 1   
-mov pipe_speed, 3 
+    mov pipe_speed, 3 
     call draw_sky_once
     ret
 
@@ -1026,7 +1039,7 @@ draw_d_row:
     
 draw_d_col:
     push cx
-    mov al, byte ptr cs:[si]  ; pointing the first pixel of the digit to be load or single pixel
+    mov al, byte ptr cs:[si]  
     inc si
     cmp al, 1
     jne skip_pix
@@ -1036,30 +1049,26 @@ draw_d_col:
     mov ax, dx
     push dx
     mov si, 320
-    mul si   ;pixel offset/stride in memory
+    mul si   
     pop dx
-    add ax, bp ;bp=x
-    mov di, ax                                         ;A000:0000 ? (0,0)
-                                                       ;A000:0001 ? (1,0)
-                                                       ;...
-                                                       ;A000:013F ? (319,0)
-                                                       ;A000:0140 ? (0,1)
-    mov al, TEXT_COLOR
+    add ax, bp 
+    mov di, ax                                         
+    mov al, text_col
     stosb
     pop si
     
 skip_pix:
-    inc bp         ;bp=x
+    inc bp         
     pop cx
     loop draw_d_col
     
-    pop bx      ; Restore row counter
-    pop bp      ; Restore X position
-    inc dx      ; Next row dx=y
+    pop bx      
+    pop bp      
+    inc dx      
     dec bx
     jnz draw_d_row
     
-    pop dx      ; Clean up Y from stack
+    pop dx      
     
 skip_digit:
     pop es
@@ -1073,7 +1082,7 @@ skip_digit:
     ret
 
 
-    draw_text_paused:
+draw_text_paused:
     push bx
     push cx
 
@@ -1092,6 +1101,7 @@ skip_digit:
     pop cx
     pop bx
     ret
+
 draw_letter_u:
     push bx    ;X
     push cx    ;Y
@@ -1100,7 +1110,7 @@ draw_letter_u:
 
     mov si, 2
     mov di, 10
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect          ; Left vertical
 
     add bx, 10
@@ -1117,7 +1127,8 @@ draw_letter_u:
     pop cx
     pop bx
     ret
-    draw_letter_d:
+
+draw_letter_d:
     push bx
     push cx
     push si
@@ -1125,7 +1136,7 @@ draw_letter_u:
 
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect          ; Left vertical
 
     mov si, 8
@@ -1148,6 +1159,7 @@ draw_letter_u:
     pop cx
     pop bx
     ret
+
 ; ======================================================
 ; 3x5 DIGIT FONT DATA
 ; ======================================================
@@ -1187,15 +1199,16 @@ draw_text_gameover:
     pop cx
     pop bx
     ret
+
 clear_pause_overlay:
-    ; Clear the pause box (draw sky background)
     mov bx, 60
     mov cx, 70
     mov si, 200
     mov di, 60
-    mov al, SKY_COLOR     ; same color used in draw_sky_once
+    mov al, sky_col     
     call rect
     ret
+
 draw_text_score:
     push bx
     call draw_letter_s
@@ -1237,6 +1250,23 @@ draw_text_deaths:
     call draw_letter_s
     pop bx
     ret
+
+; Rutina modificada para pintar "PRESS S" al inicio
+draw_text_start:
+    push bx
+    call draw_letter_p
+    add bx, 11
+    call draw_letter_r
+    add bx, 11
+    call draw_letter_e
+    add bx, 11
+    call draw_letter_s
+    add bx, 11
+    call draw_letter_s
+    add bx, 16
+    call draw_letter_s
+    pop bx
+    ret
     
 draw_text_enter:
     push bx
@@ -1257,7 +1287,8 @@ draw_text_enter:
     call draw_letter_t
     pop bx
     ret
-    ; Letter drawing with better shapes (12x12 pixels)
+
+; Letter drawing with better shapes (12x12 pixels)
 draw_letter_a:
     push bx
     push cx
@@ -1266,7 +1297,7 @@ draw_letter_a:
     ; Top horizontal
     mov si, 10
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     add cx, 2
     ; Left vertical
@@ -1296,7 +1327,7 @@ draw_letter_b:
     ; Left vertical
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Top horizontal
     mov si, 8
@@ -1332,7 +1363,7 @@ draw_letter_c:
     ; Top horizontal
     mov si, 10
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Left vertical
     add cx, 2
@@ -1358,7 +1389,7 @@ draw_letter_e:
     ; Left vertical
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Top horizontal
     mov si, 10
@@ -1386,7 +1417,7 @@ draw_letter_g:
     ; Top horizontal
     mov si, 12
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Left vertical
     add cx, 2
@@ -1424,7 +1455,7 @@ draw_letter_f:
     ; Vertical izquierda
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Horizontal superior
     mov si, 10
@@ -1448,7 +1479,7 @@ draw_letter_h:
     ; Left vertical
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Right vertical
     add bx, 8
@@ -1473,7 +1504,7 @@ draw_letter_i:
     ; Barra superior
     mov si, 8
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Vertical central
     add bx, 3
@@ -1500,7 +1531,7 @@ draw_letter_l:
     ; Vertical izquierda
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Horizontal inferior
     add cx, 10
@@ -1521,7 +1552,7 @@ draw_letter_m:
     ; Left vertical
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Right vertical
     add bx, 10
@@ -1562,7 +1593,7 @@ draw_letter_o:
     ; Top horizontal
     mov si, 12
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Left vertical
     add cx, 2
@@ -1592,7 +1623,7 @@ draw_letter_p:
     ; Left vertical
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Top horizontal
     mov si, 8
@@ -1624,7 +1655,7 @@ draw_letter_r:
     ; Left vertical
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Top horizontal
     mov si, 8
@@ -1657,6 +1688,7 @@ draw_letter_r:
     pop cx
     pop bx
     ret
+    
 draw_letter_n:
     push bx
     push cx
@@ -1665,7 +1697,7 @@ draw_letter_n:
     ; Left vertical
     mov si, 2
     mov di, 12
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Right vertical
     add bx, 10
@@ -1684,6 +1716,7 @@ draw_letter_n:
     pop cx
     pop bx
     ret
+    
 draw_letter_s:
     push bx
     push cx
@@ -1692,7 +1725,7 @@ draw_letter_s:
     ; Top horizontal
     mov si, 10
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Left vertical (top)
     add cx, 2
@@ -1730,7 +1763,7 @@ draw_letter_t:
     ; Top horizontal
     mov si, 10
     mov di, 2
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Middle vertical
     add bx, 4
@@ -1752,7 +1785,7 @@ draw_letter_v:
     ; Left diagonal
     mov si, 2
     mov di, 6
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     add bx, 1
     add cx, 6
@@ -1773,9 +1806,7 @@ draw_letter_v:
     add cx,1
     mov si,2
     call rect
-   ;bottom bar
-
-   pop di
+    pop di
     pop si
     pop cx
     pop bx
@@ -1789,7 +1820,7 @@ draw_letter_y:
     ; Brazo izquierdo
     mov si, 2
     mov di, 6
-    mov al, TEXT_COLOR
+    mov al, text_col
     call rect
     ; Brazo derecho
     add bx, 8
@@ -1825,7 +1856,7 @@ draw_sky_once:
     mov ax, 0A000h
     mov es, ax
     xor di, di
-    mov al, SKY_COLOR
+    mov al, sky_col
     mov ah, al
     mov cx, 32000
     rep stosw   ;two pixel at a time by al and ah
@@ -1850,13 +1881,7 @@ fd2:
 fd3:
     loop fd3
     ret
-    ;Look at a straight wall
 
-    ;Spin camera quickly
-
-    ;Turn VSync OFF
-
-    ;You?ll see horizontal breaks
 rect:
     push ax
     push bx
@@ -1875,34 +1900,34 @@ rect:
     jle rect_exit
     
     ; Save color
-    push ax     ; Save color on stack
+    push ax     
     
     mov ax, 0A000h
     mov es, ax
     
     ; Calculate starting position
-    mov ax, cx ;ax=x
+    mov ax, cx 
     mov dx, 320
-    mul dx    ;ax=320*x
-    add ax, bx  ;ax=(x*320)+Y offset
-    mov bp, ax  ; BP = starting offset
+    mul dx    
+    add ax, bx  
+    mov bp, ax  
     
-    pop ax      ; Restore color
-    push ax     ; Keep color on stack
+    pop ax      
+    push ax     
     
-    mov dx, di  ; DX = height counter
+    mov dx, di  
     
 rect_row_loop:
     push dx
     mov di, bp
-    mov cx, si  ; CX = width
+    mov cx, si  
     rep stosb
-    add bp, 320  ; Next row
+    add bp, 320  
     pop dx
     dec dx
     jnz rect_row_loop
     
-    pop ax      ; Clean up color from stack
+    pop ax      
     
 rect_exit:
     pop bp
@@ -1920,8 +1945,6 @@ init_gfx:
     int 10h
     mov ax, 0A000h
     mov es, ax
-    
-   
     ret
 
 ; ======================================================
@@ -1935,11 +1958,9 @@ get_random:
     
     ; Update seed using timer
     mov ah, 00h
-    int 1Ah        ;bios time service
+    int 1Ah        
     xor rand_seed, dx
     
-    ; LCG: seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
-    ;seed = seed * A + B
     mov ax, rand_seed
     mov bx, 25173
     mul bx
